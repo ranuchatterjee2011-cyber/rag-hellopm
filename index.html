@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Visual RAG Learning Tool</title>
+  <style>
+    /* =====================
+       GLOBAL STYLES
+    ====================== */
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #93c5fd;
+    }
+
+    textarea, input, button, select {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    /* =====================
+       STEP CARDS
+    ====================== */
+    .step {
+      background: #020617;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      border-left: 5px solid #334155;
+    }
+
+    .step.active {
+      border-left-color: #22c55e;
+    }
+
+    .step.done {
+      border-left-color: #3b82f6;
+    }
+
+    .output {
+      background: #020617;
+      border: 1px solid #1e293b;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #334155;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-right: 6px;
+    }
+
+    .progress {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>🔍 Interactive RAG Visual Learning Tool</h1>
+  <p>Learn Retrieval-Augmented Generation step by step — visually.</p>
+
+  <!-- =====================
+       STEP 1: CHUNKING
+  ====================== -->
+  <div class="step active" id="step1">
+    <h2>1️⃣ Input Text & Chunking</h2>
+
+    <textarea id="inputText" placeholder="Paste your source document here..."></textarea>
+
+    <input type="number" id="chunkSize" placeholder="Chunk size (words)" value="40">
+    <input type="number" id="overlap" placeholder="Sliding window overlap" value="10">
+
+    <button onclick="chunkText()">Chunk Text</button>
+    <div class="progress" id="chunkProgress"></div>
+
+    <div class="output" id="chunkOutput"></div>
+  </div>
+
+  <!-- =====================
+       STEP 2: EMBEDDINGS
+  ====================== -->
+  <div class="step" id="step2">
+    <h2>2️⃣ Create Vector Embeddings</h2>
+    <button onclick="createEmbeddings()">Generate Embeddings</button>
+    <div class="progress" id="embedProgress"></div>
+    <div class="output" id="embedOutput"></div>
+  </div>
+
+  <!-- =====================
+       STEP 3: SAVE VECTORS
+  ====================== -->
+  <div class="step" id="step3">
+    <h2>3️⃣ Save Vectors (Vector Store)</h2>
+    <button onclick="saveVectors()">Save to Local Storage</button>
+    <div class="progress" id="saveProgress"></div>
+  </div>
+
+  <!-- =====================
+       STEP 4: QUERY
+  ====================== -->
+  <div class="step" id="step4">
+    <h2>4️⃣ User Query</h2>
+    <input id="userQuery" placeholder="Ask a question..." />
+    <input type="number" id="topN" placeholder="Top N chunks" value="3">
+    <button onclick="retrieveChunks()">Ask</button>
+    <div class="output" id="retrievalOutput"></div>
+  </div>
+
+  <!-- =====================
+       STEP 5: PROMPT
+  ====================== -->
+  <div class="step" id="step5">
+    <h2>5️⃣ System Prompt (RAG)</h2>
+    <div class="output" id="promptOutput"></div>
+  </div>
+
+  <!-- =====================
+       STEP 6: LLM ANSWER
+  ====================== -->
+  <div class="step" id="step6">
+    <h2>6️⃣ LLM Answer (Simulated)</h2>
+    <div class="output" id="answerOutput"></div>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================
+   GLOBAL STATE
+===================================================== */
+let chunks = [];
+let embeddings = [];
+
+/* =====================================================
+   STEP 1: TEXT CHUNKING
+===================================================== */
+function chunkText() {
+  const text = document.getElementById("inputText").value;
+  const size = parseInt(document.getElementById("chunkSize").value);
+  const overlap = parseInt(document.getElementById("overlap").value);
+
+  const words = text.split(/\s+/);
+  chunks = [];
+
+  for (let i = 0; i < words.length; i += (size - overlap)) {
+    chunks.push(words.slice(i, i + size).join(" "));
+  }
+
+  document.getElementById("chunkOutput").innerText =
+    chunks.map((c, i) => `Chunk ${i + 1}:\n${c}`).join("\n\n");
+
+  document.getElementById("chunkProgress").innerText =
+    `✔️ Created ${chunks.length} chunks`;
+
+  activateStep(2);
+}
+
+/* =====================================================
+   STEP 2: CREATE EMBEDDINGS (SIMULATED)
+===================================================== */
+function createEmbeddings() {
+  embeddings = chunks.map(text => ({
+    text,
+    vector: fakeEmbedding(text)
+  }));
+
+  document.getElementById("embedOutput").innerText =
+    embeddings.map((e, i) =>
+      `Chunk ${i + 1} Vector:\n[${e.vector.slice(0, 5).join(", ")} ...]`
+    ).join("\n\n");
+
+  document.getElementById("embedProgress").innerText =
+    "✔️ Embeddings generated";
+
+  activateStep(3);
+}
+
+/* Simple numeric embedding generator */
+function fakeEmbedding(text) {
+  return Array.from({ length: 10 }, (_, i) =>
+    (text.charCodeAt(i % text.length) || 0) % 100
+  );
+}
+
+/* =====================================================
+   STEP 3: SAVE VECTORS
+===================================================== */
+function saveVectors() {
+  localStorage.setItem("rag_vectors", JSON.stringify(embeddings));
+  document.getElementById("saveProgress").innerText =
+    "✔️ Saved to localStorage";
+  activateStep(4);
+}
+
+/* =====================================================
+   STEP 4: RETRIEVAL
+===================================================== */
+function retrieveChunks() {
+  const query = document.getElementById("userQuery").value;
+  const topN = parseInt(document.getElementById("topN").value);
+  const queryVector = fakeEmbedding(query);
+
+  const stored = JSON.parse(localStorage.getItem("rag_vectors"));
+
+  const scored = stored.map(e => ({
+    ...e,
+    score: cosineSimilarity(queryVector, e.vector)
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const topChunks = scored.slice(0, topN);
+
+  document.getElementById("retrievalOutput").innerText =
+    topChunks.map(c =>
+      `Score: ${c.score.toFixed(2)}\n${c.text}`
+    ).join("\n\n");
+
+  buildPrompt(query, topChunks);
+  activateStep(5);
+}
+
+/* =====================================================
+   COSINE SIMILARITY
+===================================================== */
+function cosineSimilarity(a, b) {
+  const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
+  const magA = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+  const magB = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+  return dot / (magA * magB);
+}
+
+/* =====================================================
+   STEP 5 & 6: PROMPT + ANSWER
+===================================================== */
+function buildPrompt(query, chunks) {
+  const context = chunks.map(c => c.text).join("\n---\n");
+
+  const prompt = `
+System Prompt:
+Answer the following user query using ONLY the provided context.
+
+User Query:
+"${query}"
+
+Context:
+${context}
+  `;
+
+  document.getElementById("promptOutput").innerText = prompt;
+
+  document.getElementById("answerOutput").innerText =
+    "🧠 LLM Answer (simulated):\n\n" +
+    context.split(" ").slice(0, 40).join(" ") + "...";
+
+  activateStep(6);
+}
+
+/* =====================================================
+   UX STEP HIGHLIGHT
+===================================================== */
+function activateStep(step) {
+  document.querySelectorAll(".step").forEach((el, i) => {
+    el.classList.remove("active");
+    if (i + 1 <= step) el.classList.add("done");
+  });
+  document.getElementById(`step${step}`).classList.add("active");
+}
+</script>
+</body>
+</html>
